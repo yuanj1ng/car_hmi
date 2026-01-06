@@ -1,0 +1,9 @@
+﻿build/
+cmake-build-*/
+*.pro.user
+*.pro.user.*
+CMakeLists.txt.user
+*.autosave
+*.o
+*.obj
+*.ninja_log
