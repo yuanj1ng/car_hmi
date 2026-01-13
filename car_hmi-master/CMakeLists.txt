@@ -22,8 +22,8 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # 5. 查找 Qt 库
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets SerialBus SerialPort Network Multimedia)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets SerialBus SerialPort Network Multimedia)
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets SerialBus SerialPort Network Multimedia Sql)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets SerialBus SerialPort Network Multimedia Sql)
 
 # 6. 配置 OpenCV (关键修改)
 # 告诉 CMake 去哪里找 OpenCVConfig.cmake
@@ -78,6 +78,7 @@ target_link_libraries(Car_HMI PRIVATE
     Qt${QT_VERSION_MAJOR}::SerialPort
     Qt${QT_VERSION_MAJOR}::Network
     Qt${QT_VERSION_MAJOR}::Multimedia
+    Qt${QT_VERSION_MAJOR}::Sql
     ${OpenCV_LIBS}
     "${ONNX_DIR}/lib/onnxruntime.lib"
     # 如果不需要 providers_shared 可以注释掉下面这行，通常 onnxruntime.lib 就够了

@@ -203,6 +203,21 @@
         </column>
        </widget>
       </widget>
+      <widget class="QWidget" name="tab">
+       <attribute name="title">
+        <string>历史记录</string>
+       </attribute>
+       <widget class="QTableView" name="tableView_logs">
+        <property name="geometry">
+         <rect>
+          <x>5</x>
+          <y>11</y>
+          <width>781</width>
+          <height>501</height>
+         </rect>
+        </property>
+       </widget>
+      </widget>
       <widget class="QWidget" name="detect">
        <attribute name="title">
         <string>检测</string>
@@ -299,7 +314,7 @@
      <x>0</x>
      <y>0</y>
      <width>800</width>
-     <height>25</height>
+     <height>21</height>
     </rect>
    </property>
   </widget>

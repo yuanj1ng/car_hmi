@@ -1,5 +1,6 @@
 ﻿#include "vision.h"
 #include <QDir>
+#include <QCoreApplication>
 
 Vision::Vision(QObject *parent) : QObject(parent)
 {
@@ -14,9 +15,9 @@ void Vision::loadYoloModel()
 {
     // --- 对应 main 中的路径设置 ---
     // 改成你的真实路径，注意用正斜杠 /
-    QString currentPath = QDir::currentPath ();
-    std::string modelPath = currentPath.toStdString() + "/3dparty/yolov8s.onnx";
-    QString classesPath = currentPath + "/3dparty/classes.txt"; // 哪怕是个空文件也要有，不然报错
+    QString appPath = QCoreApplication::applicationDirPath();
+    std::string modelPath = QDir(appPath).filePath("3dparty/yolov8s.onnx").toStdString();
+    QString classesPath = QDir(appPath).filePath("3dparty/classes.txt");
 
     // 你的电脑目前用 CPU 比较稳，先设为 false
     bool runOnGPU = false;
@@ -88,13 +89,17 @@ void Vision::detectFrame(cv::Mat frame)
                 int globalY = box.y + cy;
 
                 // 画个圈标记一下
+                output[i].targetX = globalX;
+                output[i].targetY = globalY;
+
                 cv::circle(frame, cv::Point(globalX, globalY), 5, cv::Scalar(0, 0, 255), -1);
                 targetList.push_back({globalX, globalY});
                 qDebug() << targetList.size();
             }
         }
     }
-    emit sendTarget(targetList);
+    //emit sendTarget(targetList);
+    emit sendDetections(output);
     // 3. 【关键改动】替代 cv::imshow
     // Qt 显示不了 BGR 格式，必须转成 RGB
     cv::cvtColor(frame, frame, cv::COLOR_BGR2RGB);

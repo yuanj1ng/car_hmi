@@ -11,7 +11,8 @@
 #include <QGraphicsView>
 #include <QGraphicsScene>
 #include <QGraphicsPixmapItem>
-
+#include <QSqlDatabase>
+#include <QSqlTableModel>
 
 struct MonitorItem {
     QString name;       // 显示的名字，比如 "速度设定"
@@ -76,7 +77,9 @@ private:
     void handleLaserFireResponse();
     void handleEnableResponse();
     void initMonitorTable();
-
+    void initModel();
+    void initDataBase();
+    void saveDetectionRecord(const QString &className, double confidence, int x = -1, int y = -1);
     // 更新表格某一行数据的函数
     void updateTableValue(QModbusDataUnit::RegisterType type, int address, quint16 value);
 
@@ -102,5 +105,7 @@ private:
     bool autoReadState = true;
     // 存储所有监控项的列表
     QList<MonitorItem> m_monitorList;
+    QSqlDatabase m_db;
+    QSqlTableModel *m_logModel;
 };
 #endif // MAINWINDOW_H

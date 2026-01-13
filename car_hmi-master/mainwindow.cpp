@@ -12,6 +12,10 @@
 #include <opencv2/opencv.hpp>
 #include <QImage>
 #include <QPixmap>
+#include <QSqlQuery>
+#include <QSqlError>
+#include <QSqlDatabase>
+#include <QDateTime>
 
 
 MainWindow::MainWindow(QWidget *parent)
@@ -19,9 +23,12 @@ MainWindow::MainWindow(QWidget *parent)
     , ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+    initDataBase();
+    initModel();
     qRegisterMetaType<cv::Mat>("cv::Mat");
-    // 只需要加这一句，买个保险
     qRegisterMetaType<QList<QPoint>>("QList<QPoint>");
+    qRegisterMetaType<std::vector<Detection>>("std::vector<Detection>");
+    qRegisterMetaType<Detection>("Detection");
 
     carModbus = new ModbusManager;
     connect(carModbus, &ModbusManager::connectionStatusChanged, this, &MainWindow::onModbusConnectionChanged);
@@ -35,7 +42,6 @@ MainWindow::MainWindow(QWidget *parent)
     /*QString appDir = QCoreApplication::applicationDirPath();
     QString modelPath = QDir(appDir).filePath("yolov8n.onnx");
     QString imagePath = QDir(appDir).filePath("image");*/
-
 
     // 3. 初始化
     initMonitorTable();
@@ -81,15 +87,35 @@ MainWindow::MainWindow(QWidget *parent)
         ui->graphicsView->viewport()->update();
     });
 
-    connect(visionprocess, &Vision::sendTarget, this, [this](QList<QPoint> targetList){
+    /*connect(visionprocess, &Vision::sendTarget, this, [this](QList<QPoint> targetList){
         qDebug() << "打击点接收成功";
         qDebug() << "准备发送坐标，数量：" << targetList.size();
         if(targetList.size() == 0) return;
         for(int i = 0; i < targetList.size(); i++){
+
+            this->saveDetectionRecord("LaserPoint", 1.0, targetList[i].x(), targetList[i].y());
+
             carModbus->writeModbusValue(QModbusDataUnit::HoldingRegisters, Reg_LaserTargetX, targetList[i].x(), CarServerID);
             carModbus->writeModbusValue(QModbusDataUnit::HoldingRegisters, Reg_LaserTargetY, targetList[i].y(), CarServerID);
         }
+    });*/
+
+    connect(visionprocess, &Vision::sendDetections, this, [this](std::vector<Detection> dets){
+        // 遍历所有检测到的物体
+        for(const auto& det : dets){
+            // 这里的 det.className 就是例如 "person", "car" 的真实名字
+            // 这里的 det.confidence 就是例如 0.85 的真实置信度
+
+            // 为了美观，我们把置信度保留2位小数存进去
+            // (你也可以直接存 det.confidence)
+            this->saveDetectionRecord(QString::fromStdString(det.className), det.confidence, det.targetX, det.targetY);
+            if (det.targetX > 0 && det.targetY > 0) {
+                carModbus->writeModbusValue(QModbusDataUnit::HoldingRegisters, Reg_LaserTargetX, det.targetX, CarServerID);
+                carModbus->writeModbusValue(QModbusDataUnit::HoldingRegisters, Reg_LaserTargetY, det.targetY, CarServerID);
+            }
+        }
     });
+
 }
 
 
@@ -146,6 +172,110 @@ void MainWindow::initMonitorTable()
     }
 }
 
+void MainWindow::initModel()
+{
+    // 1. 实例化 Model
+    // 参数2: m_db 是数据库连接对象，告诉它去哪个数据库找
+    m_logModel = new QSqlTableModel(this, m_db);
+
+    // 2. 绑定数据库表
+    // 告诉它：“你要显示 detection_logs 这张表的数据”
+    m_logModel->setTable("detection_logs");
+
+    // 3. 设置编辑策略
+    // OnManualSubmit: 用户修改后需要点保存才生效（防止误触）
+    // 这里的场景其实主要是看，设不设都行
+    m_logModel->setEditStrategy(QSqlTableModel::OnManualSubmit);
+
+    // 4. 【关键】查询数据
+    // 这句话相当于执行了 "SELECT * FROM detection_logs"
+    m_logModel->select();
+
+    // 5. 设置表头别名 (给人看的中文)
+    // 0: id, 1: time, 2: type, 3: confidence, 4: x, 5: y
+    m_logModel->setHeaderData(0, Qt::Horizontal, "ID");
+    m_logModel->setHeaderData(1, Qt::Horizontal, "时间");
+    m_logModel->setHeaderData(2, Qt::Horizontal, "类别");
+    m_logModel->setHeaderData(3, Qt::Horizontal, "置信度");
+    m_logModel->setHeaderData(4, Qt::Horizontal, "X坐标");
+    m_logModel->setHeaderData(5, Qt::Horizontal, "Y坐标");
+
+    // 6. 把 Model 放到 View 里展示
+    // 这一步之后，界面上立马就会出现数据！
+    ui->tableView_logs->setModel(m_logModel);
+
+    // 7. 一些美化 (可选)
+    // 隐藏 ID 列（通常用户不关心 ID）
+    // ui->tableView_logs->hideColumn(0);
+    // 列宽自适应
+    ui->tableView_logs->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+}
+
+
+
+void MainWindow::initDataBase()
+{
+    if(QSqlDatabase::contains("qt_sql_default_connection")){
+        m_db = QSqlDatabase::database("qt_sql_default_connection");
+    }else{
+        m_db = QSqlDatabase::addDatabase("QSQLITE");
+    }
+
+    QString dbPath = QCoreApplication::applicationDirPath() + "/car_data.db";
+    m_db.setDatabaseName(dbPath);
+    if(!m_db.open()){
+        qDebug() << "数据库打开失败：" << m_db.lastError().text();
+        return;
+    }
+    qDebug() << "数据库连接成功，路径：" << dbPath;
+
+    QSqlQuery query;
+    QString createSql = "CREATE TABLE IF NOT EXISTS detection_logs ("
+                        "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                        "time TEXT, "
+                        "type TEXT, "
+                        "confidence REAL,"
+                        "target_x INTEGER, "
+                        "target_y INTEGER)";
+
+    if(!query.exec(createSql)){
+        qDebug() << "建表失败：" << query.lastError().text();
+    } else {
+        qDebug() << "数据表检测/创建成功";
+    }
+}
+
+void MainWindow::saveDetectionRecord(const QString &className, double confidence, int x, int y)
+{
+    if(!m_db.isOpen()) return;
+
+    QSqlQuery query;
+    // 使用 prepare + bindValue 是防止 SQL 注入、处理特殊字符的标准写法
+    query.prepare("INSERT INTO detection_logs (time, type, confidence, target_x, target_y) "
+                  "VALUES (:time, :type, :confidence, :x, :y)");
+
+    // 获取当前时间字符串
+    QString currentTime = QDateTime::currentDateTime().toString("yyyy-MM-dd HH:mm:ss");
+    double cleanVal = QString::number(confidence, 'f', 2).toDouble();
+    query.bindValue(":time", currentTime);
+    query.bindValue(":type", className);
+    query.bindValue(":confidence", cleanVal);
+    query.bindValue(":x", x); // 绑定 x
+    query.bindValue(":y", y); // 绑定 y
+
+    if(!query.exec()){
+        qDebug() << "插入数据失败：" << query.lastError().text();
+    } else {
+        // qDebug() << "成功记录一条数据：" << className;
+        if (m_logModel) {
+            m_logModel->select();
+
+            // 炫技：自动滚动到底部，让用户看到最新的一行
+            ui->tableView_logs->scrollToBottom();
+        }
+    }
+}
+
 
 void MainWindow::on_pushButton_connect_clicked()
 {
@@ -169,8 +299,11 @@ void MainWindow::on_pushButton_enable_clicked()
         }else{
             carModbus->writeModbusValue(QModbusDataUnit::Coils, Addr_PowerEnable, 1, CarServerID);
             m_visionThread->start();
-            QString currentPath = QDir::currentPath();
-            m_imageFolderPath = currentPath + "/3dparty/images/val";
+            QString appPath = QCoreApplication::applicationDirPath();
+
+            // 拼接路径
+            m_imageFolderPath = appPath + "/3dparty/images/val";
+
             QDir dir(m_imageFolderPath);
             QStringList filters;
             filters << "*.jpg" << "*.png" << "*.jpeg";

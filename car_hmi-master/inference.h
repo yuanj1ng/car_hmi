@@ -6,6 +6,7 @@
 #include <opencv2/opencv.hpp>
 #include <onnxruntime_cxx_api.h>
 #include <QString>
+#include <QMetaType>
 
 struct Detection {
     int class_id;
@@ -13,6 +14,8 @@ struct Detection {
     cv::Rect box;
     std::string className;
     cv::Scalar color;
+    int targetX = -1;
+    int targetY = -1;
 };
 
 class Inference {
@@ -42,4 +45,6 @@ private:
     cv::Scalar getColor(int classId);
 };
 
+Q_DECLARE_METATYPE(Detection)
+Q_DECLARE_METATYPE(std::vector<Detection>)
 #endif // INFERENCE_H

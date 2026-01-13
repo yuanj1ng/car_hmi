@@ -29,6 +29,7 @@ signals:
     // 替代 cv::imshow，把图发给界面显示
     void sendResult(QImage img);
     void sendTarget(QList<QPoint>);
+    void sendDetections(std::vector<Detection> dets);
 
 private:
     // 把 Inference 做成成员变量，而不是局部变量
