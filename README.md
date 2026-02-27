@@ -43,6 +43,11 @@
 4. 将你的 YOLOv8 `.onnx` 模型文件与 `classes.txt` 放置于编译生成的同级 `3dparty/` 目录下。
 5. 编译并运行。
 
+### 🐧 Linux 版本运行指南 (Ubuntu)
+1. 下载并解压 `Linux_CAR_HMI.tar.gz`。
+2. 在解压后的目录中打开终端，直接运行启动脚本：
+   ```bash
+   ./AppRun
 ---
 
 ## 🧠 系统架构简述 (Architecture)
