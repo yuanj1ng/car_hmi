@@ -1,0 +1,21 @@
+﻿# --- 极其致命的体积怪兽 ---
+# 忽略常规命名的 build 文件夹
+build/
+build-*/
+out/
+
+# 忽略 3dparty 下巨大的解压包（假设你的文件夹名字带有 opencv 或 onnx）
+3dparty/opencv*/
+3dparty/onnxruntime*/
+
+# 忽略所有的编译产物和动态/静态链接库
+*.dll
+*.lib
+*.so
+*.so.*
+*.a
+*.exe
+*.app
+
+# 忽略巨大的模型文件（如果 yolov8s.onnx 比较小可以不写这行，但建议忽略）
+*.onnx
