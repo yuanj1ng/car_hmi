@@ -51,9 +51,3 @@
 1. **Main UI Thread (主线程)：** 负责接收用户输入、渲染 OpenCV 转换后的图像流、读写 SQLite 数据库。
 2. **Vision Thread (视觉推理线程)：** 独立挂载定时器拉取网络视频流，调用 ONNX Runtime 进行前向推理，通过 Qt 的 `Signals and Slots` 机制安全地将检测框数据跨线程发给 UI。
 3. **TCP Thread (网络通信线程)：** 独立处理大并发的底层指令发送与心跳包心跳监测，防止网络波动阻塞主程序。
-
----
-
-## 👨‍💻 开发者 (Author)
-
-**Jing Yuan** - 专注于 C++ / Qt 开发、机器人软
