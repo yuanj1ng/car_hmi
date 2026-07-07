@@ -90,7 +90,7 @@ MainWindow::MainWindow(QWidget *parent)
         if (m_logModel) {
             m_logModel->select(); // 刷新数据源
             
-            qDebug() << "[UI线程] 🔄 表格定时刷新，当前数据库总行数：" << m_logModel->rowCount();
+            //qDebug() << "[UI线程] 🔄 表格定时刷新，当前数据库总行数：" << m_logModel->rowCount();
             
             // 如果真的有数据，让它滚到底部
             if (m_logModel->rowCount() > 0) {
