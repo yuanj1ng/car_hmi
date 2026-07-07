@@ -1,58 +1,62 @@
-# 🚜 Laser Weeder HMI (激光除草机器人上位机控制系统)
+# 🚜 基于 RK3588S 的端侧 AI 视觉检测与底盘控制系统 (Laser Weeder HMI)
 
-![C++](https://img.shields.io/badge/C++-11/14/17-blue.svg) ![Qt](https://img.shields.io/badge/Qt-5.15-green.svg) ![OpenCV](https://img.shields.io/badge/OpenCV-4.x-red.svg) ![ONNXRuntime](https://img.shields.io/badge/ONNXRuntime-Supported-orange.svg)
+![C++](https://img.shields.io/badge/C++-17-blue.svg) ![Qt](https://img.shields.io/badge/Qt-5.15-green.svg) ![RKNN](https://img.shields.io/badge/RKNN-NPU-orange.svg) ![V4L2](https://img.shields.io/badge/V4L2-MemoryMapping-red.svg) ![ESP32](https://img.shields.io/badge/ESP32-PWM-yellow.svg)
 
-本项目是一款为“激光除草机器人”量身定制的跨平台上位机控制软件 (HMI)。
-系统集成了**机器视觉目标检测**与**底层硬件 TCP 实时通信**，实现了从“眼睛（摄像头采集与杂草识别）”到“大脑（UI 交互与数据存储）”再到“四肢（下位机电机驱动）”的完整闭环控制。
+本项目为激光除草机器人上位机控制系统，运行于 **RK3588S (Ubuntu)** 嵌入式平台。系统覆盖从 **Linux 内核驱动层**（摄像头 Sensor 寄存器调优）、**底层视频采集层**（V4L2 + mmap 零拷贝）、**NPU 异构计算层**（RKNN 量化推理）到 **TCP 下位机控制层**（ESP32 电机驱动）的全链路实现。
 
 ---
 
-## ✨ 核心特性 (Key Features)
+## 🔧 核心工作与技术实现
 
-* **👁️ 实时机器视觉流水线：** * 支持通过局域网读取手机 IP 摄像头的实时视频流。
-  * 深度集成 `OpenCV` 与 `ONNX Runtime`，使用 `YOLOv8` 模型进行低延迟的杂草/目标检测。
-  * 采用双缓冲与多线程架构（Vision Thread），保证 AI 推理时主 UI 界面“零卡顿”。
-* **🎮 软硬件协同控制：** * 基于 `QTcpSocket` 与 ESP32 下位机建立高可靠性连接。
-  * 自定义指令协议，支持全向运动控制（PWM 动态调速）与心跳包断线重连机制。
-* **💾 数据持久化与日志：** * 内置 `SQLite` 数据库，实时记录检测目标的坐标、类别、置信度及系统运行日志，便于后续实验数据分析。
-* **🖥️ 现代化交互界面：** * 基于 Qt 框架开发的工业级仪表盘，支持参数动态配置与实时画面渲染。
+### 1. Linux 底层驱动与内核适配 (Kernel/Driver)
+- **Sensor 驱动修改**：修改 `imx415.c` 驱动源码，查阅 Sensor 手册计算 I2C 寄存器序列，新增 **60FPS** 运行模式。
+- **设备树与内核编译**：修改设备树叠加层 (DTBO) 绑定 MIPI CSI 数据通道；重新编译内核模块并配置 `extlinux` 引导参数，完成系统移植。
+
+### 2. 视频流底层采集 (V4L2)
+- **弃用 GStreamer**：直接调用 `V4L2 ioctl` API 进行底层取图控制。
+- **零拷贝内存映射**：通过 `mmap` 将内核态 NV12 图像缓冲区映射至用户态，消除数据拷贝开销，降低取帧延迟。
+
+### 3. NPU 端侧 AI 部署 (RKNN)
+- **模型量化**：基于 `rknn-toolkit2` 将 YOLOv8 模型量化为 **int8** 格式，适配 NPU 计算单元。
+- **异步推理流水线**：调用 RKNN C++ API 执行推理，结合多线程实现 **"抓图-推理-渲染"** 三线程异步流水线。端到端检测帧率从 20FPS 提升并稳定至 **60 FPS**。
+
+### 4. 上位机 UI 与并发架构 (Qt/C++)
+- 开发 Qt 主控界面，使用 `QThread` 将视觉推理模块与主线程物理隔离。
+- 通过 **信号槽 (Signals & Slots)** 实现跨线程检测框数据与图像帧的安全传递。
+
+### 5. 高频日志落盘 (SQLite)
+- 开启 SQLite **WAL 模式 (Write-Ahead Logging)**。
+- 开辟独立后台线程，采用 **批量事务写入 (`execBatch`)** 机制写入日志与检测记录，规避磁盘 I/O 阻塞 UI 主线程。
+
+### 6. 网络通信与下位机控制 (TCP/ESP32)
+- **自定义应用层协议**：基于 `QTcpSocket` 实现上位机指令下发与状态同步，内置心跳包与断线重连机制。
+- **ESP32 固件**：编写 ESP32 C++ 解析 TCP 报文，输出 **PWM** 信号驱动 **TB6612** 电机驱动模块，控制底盘直流电机运动。
 
 ---
 
 ## 🛠️ 技术栈 (Tech Stack)
 
-* **编程语言：** C++
-* **GUI 框架：** Qt 5 (Widgets, Network, Sql, Concurrent)
-* **视觉与 AI：** OpenCV 4, ONNX Runtime (C++ API), YOLOv8 
-* **数据库：** SQLite 3
-* **硬件端（配合使用）：** ESP32, L298N 电机驱动, 直流减速电机
+| 层级 | 技术组件 |
+| :--- | :--- |
+| **系统层** | Linux Kernel (Ubuntu), Device Tree (DTBO), imx415 Driver |
+| **视频采集** | V4L2, mmap, NV12 |
+| **AI 推理** | RKNN API, rknn-toolkit2, YOLOv8-int8, NPU |
+| **上位机框架** | C++17, Qt 5.15 (Widgets, Network, SQL, Concurrent) |
+| **图像处理** | OpenCV 4.x |
+| **数据存储** | SQLite 3 (WAL 模式) |
+| **下位机** | ESP32, ESP-IDF, PWM, TB6612 |
 
 ---
 
-## 🚀 快速体验 (Quick Start)
+## ⚙️ 编译与运行 (Ubuntu / RK3588S)
 
-### 方式一：下载免安装发行版（推荐 Windows 用户）
-1. 前往本仓库的 [Releases](https://github.com/yuanj1ng/car_hmi/releases) 页面。
-2. 下载最新的 `win-x64Car_HMI.zip` 压缩包。
-3. 解压至**全英文路径**下，直接双击运行 `Car_HMI.exe` 即可（已内置所有环境依赖）。
+### 环境依赖
+- 系统：Ubuntu 22.04 (Rockchip SDK)
+- 编译器：GCC 9.4+
+- 第三方库：OpenCV 4.x, Qt 5.15, rknn-toolkit2, SQLite3
 
-### 方式二：源码编译
-1. 克隆本仓库：`git clone https://github.com/yuanj1ng/car_hmi.git`
-2. 使用 Qt Creator 打开 `.pro` 或 `CMakeLists.txt` 文件。
-3. 确保你的环境中已配置好 OpenCV 与 ONNX Runtime 的 C++ 库路径。
-4. 将你的 YOLOv8 `.onnx` 模型文件与 `classes.txt` 放置于编译生成的同级 `3dparty/` 目录下。
-5. 编译并运行。
-
-### 🐧 Linux 版本运行指南 (Ubuntu)
-1. 下载并解压 `Linux_CAR_HMI.tar.gz`。
-2. 在解压后的目录中打开终端，直接运行启动脚本：
+### 编译步骤
+1. 克隆仓库：
    ```bash
-   ./AppRun
----
-
-## 🧠 系统架构简述 (Architecture)
-
-为了保证工业级软件的稳定性，系统采用了严格的**主从多线程架构**：
-1. **Main UI Thread (主线程)：** 负责接收用户输入、渲染 OpenCV 转换后的图像流、读写 SQLite 数据库。
-2. **Vision Thread (视觉推理线程)：** 独立挂载定时器拉取网络视频流，调用 ONNX Runtime 进行前向推理，通过 Qt 的 `Signals and Slots` 机制安全地将检测框数据跨线程发给 UI。
-3. **TCP Thread (网络通信线程)：** 独立处理大并发的底层指令发送与心跳包心跳监测，防止网络波动阻塞主程序。
+   git clone https://github.com/yuanj1ng/car_hmi.git
+   cd car_hmi
