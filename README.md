@@ -3,6 +3,7 @@
 ![C++](https://img.shields.io/badge/C++-17-blue.svg) ![Qt](https://img.shields.io/badge/Qt-5.15-green.svg) ![RKNN](https://img.shields.io/badge/RKNN-NPU-orange.svg) ![V4L2](https://img.shields.io/badge/V4L2-MemoryMapping-red.svg) ![ESP32](https://img.shields.io/badge/ESP32-PWM-yellow.svg)
 
 本项目为激光除草机器人上位机控制系统，运行于 **RK3588S (Ubuntu)** 嵌入式平台。系统覆盖从 **Linux 内核驱动层**（摄像头 Sensor 寄存器调优）、**底层视频采集层**（V4L2 + mmap 零拷贝）、**NPU 异构计算层**（RKNN 量化推理）到 **TCP 下位机控制层**（ESP32 电机驱动）的全链路实现。
+![Uploading converted.gif…]()
 
 ---
 
