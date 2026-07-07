@@ -1,0 +1,4 @@
+/home/jing/project/orangepi/datasets/coco8/images/val/000000000036.jpg
+/home/jing/project/orangepi/datasets/coco8/images/val/000000000042.jpg
+/home/jing/project/orangepi/datasets/coco8/images/val/000000000049.jpg
+/home/jing/project/orangepi/datasets/coco8/images/val/000000000061.jpg

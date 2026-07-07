@@ -1,0 +1,25 @@
+# 编译目录与产物
+build/
+bin/
+*.o
+*.so
+*.a
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+CMakeFiles/
+
+# 运行时数据库（测试数据）
+*.db
+*.db-shm
+*.db-wal
+*.log
+
+# 大型 AI 模型文件（不上传，通过 Release 分发）
+*.rknn
+*.onnx
+
+# 临时文件
+xx.txt
+*.tmp
+*~
