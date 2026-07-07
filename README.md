@@ -36,27 +36,52 @@
 
 ## 🛠️ 技术栈 (Tech Stack)
 
-| 层级 | 技术组件 |
-| :--- | :--- |
-| **系统层** | Linux Kernel (Ubuntu), Device Tree (DTBO), imx415 Driver |
-| **视频采集** | V4L2, mmap, NV12 |
-| **AI 推理** | RKNN API, rknn-toolkit2, YOLOv8-int8, NPU |
-| **上位机框架** | C++17, Qt 5.15 (Widgets, Network, SQL, Concurrent) |
-| **图像处理** | OpenCV 4.x |
-| **数据存储** | SQLite 3 (WAL 模式) |
-| **下位机** | ESP32, ESP-IDF, PWM, TB6612 |
+| 层级 | 组件 | 版本 |
+| :--- | :--- | :--- |
+| **系统层** | Ubuntu (Rockchip SDK) | 22.04 LTS |
+| | Linux Kernel | 5.10.160 |
+| **视频采集** | V4L2 | Linux 内核原生驱动 |
+| | OpenCV | 4.5.5 |
+| **AI 推理** | RKNN API | 1.6.0 |
+| | rknn-toolkit2 | 1.6.0 |
+| | YOLOv8-int8 | 自定义量化 |
+| **GUI 框架** | Qt | 5.15.3 |
+| | Qt Network | 5.15.3 |
+| | Qt SQL | 5.15.3 |
+| | Qt Concurrent | 5.15.3 |
+| **数据库** | SQLite | 3.37.2 |
+| **下位机** | ESP32 | ESP-IDF v4.4 |
+| | PWM 驱动 | TB6612 |
+| **构建工具** | CMake | 3.22.1 |
+| | GCC | 9.4.0 |
 
 ---
 
 ## ⚙️ 编译与运行 (Ubuntu / RK3588S)
 
-### 环境依赖
-- 系统：Ubuntu 22.04 (Rockchip SDK)
-- 编译器：GCC 9.4+
-- 第三方库：OpenCV 4.x, Qt 5.15, rknn-toolkit2, SQLite3
+- **系统**：Ubuntu 22.04 LTS (https://github.com/Joshua-Riek/ubuntu-rockchip)
+- **内核**：Linux 5.10.1012 (https://github.com/Joshua-Riek/ubuntu-rockchip)](https://github.com/Joshua-Riek/linux-rockchip)
+- **编译器**：GCC 11.4.0 
+- **构建工具**：CMake 3.22.1+
 
 ### 编译步骤
-1. 克隆仓库：
+
+1. **克隆仓库**：
    ```bash
    git clone https://github.com/yuanj1ng/car_hmi.git
    cd car_hmi
+   ```
+
+2. **创建构建目录并编译**：
+   ```bash
+   mkdir build
+   cd build
+   cmake ..
+   make -j8
+   ```
+
+3. **运行程序**：
+   ```bash
+   cd ../bin
+   ./car_hmi
+   ```
