@@ -1,0 +1,71 @@
+/dts-v1/;
+/plugin/;
+/ {
+    fragment@0 {
+        target = <&i2c7>;
+        __overlay__ {
+            status = "okay";
+            #address-cells = <1>;
+            #size-cells = <0>;
+            imx415: imx415@1a {
+                compatible = "sony,imx415";
+                reg = <0x1a>;
+                status = "okay";
+                clocks = <&cru 258>;
+                clock-names = "xvclk";
+                pinctrl-names = "default";
+                pinctrl-0 = <&mipim0_camera3_clk>;
+                reset-gpios = <&gpio3 20 1>;
+                pwdn-gpios = <&gpio3 21 1>;
+                rockchip,camera-module-index = <0>;
+                rockchip,camera-module-facing = "back";
+                rockchip,camera-module-name = "CMK-OT2022-PX1";
+                rockchip,camera-module-lens-name = "IR0147-50IRC-8M-F20";
+                port {
+                    imx415_out: endpoint {
+                        remote-endpoint = <&mipi_in_ucam0>;
+                        data-lanes = <1 2 3 4>;
+                    };
+                };
+            };
+        };
+    };
+
+    fragment@1 { target = <&csi2_dphy0>; __overlay__ { status = "okay"; ports { port { mipi_in_ucam0: endpoint { remote-endpoint = <&imx415_out>; data-lanes = <1 2 3 4>; }; }; }; }; };
+    fragment@2 { target = <&csi2_dphy0_hw>; __overlay__ { status = "okay"; }; };
+    fragment@3 { target = <&mipi2_csi2>; __overlay__ { status = "okay"; }; };
+    fragment@4 { target = <&rkcif_mipi_lvds2>; __overlay__ { status = "okay"; }; };
+    fragment@5 { target = <&rkcif_mipi_lvds2_sditf>; __overlay__ { status = "okay"; }; };
+    fragment@6 { target = <&rkcif>; __overlay__ { status = "okay"; }; };
+    fragment@7 { target = <&rkcif_mmu>; __overlay__ { status = "okay"; }; };
+    fragment@8 { target = <&rkisp0>; __overlay__ { status = "okay"; }; };
+    fragment@9 { target = <&isp0_mmu>; __overlay__ { status = "okay"; }; };
+
+    fragment@10 {
+        target = <&rkisp0_vir0>;
+        __overlay__ {
+            status = "okay";
+            port {
+                #address-cells = <1>;
+                #size-cells = <0>;
+                isp0_vir0_in: endpoint@0 {
+                    reg = <0>;
+                    remote-endpoint = <&mipi_lvds2_sditf>;
+                };
+            };
+        };
+    };
+
+    fragment@11 {
+        target = <&rkcif_mipi_lvds2_sditf>;
+        __overlay__ {
+            status = "okay";
+            port {
+                mipi_lvds2_sditf: endpoint {
+                    remote-endpoint = <&isp0_vir0_in>;
+                    bus-type = <3>;
+                };
+            };
+        };
+    };
+};
